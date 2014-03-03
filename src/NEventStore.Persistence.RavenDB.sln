@@ -1,0 +1,47 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2013
+VisualStudioVersion = 12.0.30110.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{09DEED55-B936-4C29-AC45-6844080C025D}"
+	ProjectSection(SolutionItems) = preProject
+		.nuget\NuGet.Config = .nuget\NuGet.Config
+		.nuget\NuGet.exe = .nuget\NuGet.exe
+		.nuget\NuGet.targets = .nuget\NuGet.targets
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NEventStore", "..\dependencies\NEventStore\src\NEventStore\NEventStore.csproj", "{03946843-F343-419C-88EF-3E446D08DFA6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NEventStore.Persistence.RavenDB", "NEventStore.Persistence.RavenDB\NEventStore.Persistence.RavenDB.csproj", "{F9E7FD69-0818-48CA-9249-5387739E1B6A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NEventStore.Persistence.RavenDB.Tests", "NEventStore.Persistence.RavenDB.Tests\NEventStore.Persistence.RavenDB.Tests.csproj", "{B358D0B5-6FF9-4621-8DDD-2F7E4A6E91EA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NEventStore.Persistence.AcceptanceTests", "..\dependencies\NEventStore\src\NEventStore.Persistence.AcceptanceTests\NEventStore.Persistence.AcceptanceTests.csproj", "{3FE594FE-16FF-4405-97D5-5A58FB12520B}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{03946843-F343-419C-88EF-3E446D08DFA6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{03946843-F343-419C-88EF-3E446D08DFA6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{03946843-F343-419C-88EF-3E446D08DFA6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{03946843-F343-419C-88EF-3E446D08DFA6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F9E7FD69-0818-48CA-9249-5387739E1B6A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F9E7FD69-0818-48CA-9249-5387739E1B6A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F9E7FD69-0818-48CA-9249-5387739E1B6A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F9E7FD69-0818-48CA-9249-5387739E1B6A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B358D0B5-6FF9-4621-8DDD-2F7E4A6E91EA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B358D0B5-6FF9-4621-8DDD-2F7E4A6E91EA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B358D0B5-6FF9-4621-8DDD-2F7E4A6E91EA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B358D0B5-6FF9-4621-8DDD-2F7E4A6E91EA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3FE594FE-16FF-4405-97D5-5A58FB12520B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3FE594FE-16FF-4405-97D5-5A58FB12520B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3FE594FE-16FF-4405-97D5-5A58FB12520B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3FE594FE-16FF-4405-97D5-5A58FB12520B}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
