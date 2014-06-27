@@ -13,6 +13,9 @@
   using Raven.Client.Exceptions;
   using System.Linq.Expressions;
   using Raven.Client.Indexes;
+  using Raven.Abstractions.Data;
+  using Raven.Json.Linq;
+  using Raven.Abstractions.Commands;
 
   public class RavenPersistenceEngine : IPersistStreams
   {
@@ -550,7 +553,7 @@
 
       TryRaven(() =>
       {
-        using (TransactionScope scope = new TransactionScope(_scopeOption))
+        using (TransactionScope scope = OpenCommandScope())
         {
           new RavenCommitByDate().Execute(_store);
           new RavenCommitByRevisionRange().Execute(_store);
@@ -616,9 +619,8 @@
       _store.Dispose();
     }
 
-
     #region Query Helpers
-    private IEnumerable<ICommit> QueryCommits<TIndex>(Expression<Func<RavenCommit, bool>> query) where TIndex : Raven.Client.Indexes.AbstractIndexCreationTask, new()
+    private IEnumerable<ICommit> QueryCommits<TIndex>(Expression<Func<RavenCommit, bool>> query) where TIndex : AbstractIndexCreationTask, new()
     {
       return Query<RavenCommit, TIndex>(query).Select(x => x.ToCommit(_serializer));
     }
@@ -655,7 +657,7 @@
     {
       try
       {
-        using (TransactionScope scope = new TransactionScope(_scopeOption))
+        using (TransactionScope scope = OpenCommandScope())
         {
           IQueryable<T> query = session.Query<T, TIndex>().Customize(x =>
           {
@@ -686,14 +688,14 @@
     }
     #endregion
 
-    public IEnumerable<ICommit> GetFrom(string bucketId, string streamId, int minRevision, int maxRevision)
+    public virtual IEnumerable<ICommit> GetFrom(string bucketId, string streamId, int minRevision, int maxRevision)
     {
       Logger.Debug(Messages.GettingAllCommitsBetween, streamId, bucketId, minRevision, maxRevision);
       return QueryCommits<RavenCommitByRevisionRange>(x => x.BucketId == bucketId && x.StreamId == streamId && x.StreamRevision >= minRevision && x.StartingStreamRevision <= maxRevision)
         .OrderBy(x => x.CommitSequence);
     }
 
-    public IEnumerable<ICommit> GetFrom(string bucketId, DateTime start)
+    public virtual IEnumerable<ICommit> GetFrom(string bucketId, DateTime start)
     {
       Logger.Debug(Messages.GettingAllCommitsFrom, start, bucketId);
       return QueryCommits<RavenCommitByDate>(x => x.BucketId == bucketId && x.CommitStamp >= start).OrderBy(x => x.CommitStamp);
@@ -704,68 +706,237 @@
       return string.IsNullOrWhiteSpace(checkpointToken) ? null : LongCheckpoint.Parse(checkpointToken);
     }
 
-    public IEnumerable<ICommit> GetFromTo(string bucketId, DateTime start, DateTime end)
+    public virtual IEnumerable<ICommit> GetFromTo(string bucketId, DateTime start, DateTime end)
     {
       Logger.Debug(Messages.GettingAllCommitsFromTo, start, end);
       return QueryCommits<RavenCommitByDate>(x => x.BucketId == bucketId && x.CommitStamp >= start && x.CommitStamp < end).OrderBy(x => x.CommitStamp); //.ThenBy(x => x.StreamId).ThenBy(x => x.CommitSequence);
     }
 
-    public IEnumerable<ICommit> GetUndispatchedCommits()
+    public virtual IEnumerable<ICommit> GetUndispatchedCommits()
     {
       Logger.Debug(Messages.GettingUndispatchedCommits);
-      //TODO: sistemare in numerico come fanno negli altri persistor. Cambiare pertanto il commit che viene salvato nel db
-      //Deve diventare CheckpoitNumber se si riesce
       return QueryCommits<RavenCommitsByDispatched>(x => !x.Dispatched).OrderBy(x => x.CheckpointToken);
     }
 
-    public void MarkCommitAsDispatched(ICommit commit)
+    public virtual void MarkCommitAsDispatched(ICommit commit)
+    {
+      if (commit == null)
+        throw new ArgumentNullException("commit");
+
+      var data = new PatchCommandData
+      {
+        Key = commit.ToRavenCommitId(),
+        Patches = new[] { new PatchRequest { Type = PatchCommandType.Set, Name = "Dispatched", Value = RavenJToken.Parse("true") } }
+      };
+
+      Logger.Debug(Messages.MarkingCommitAsDispatched, commit.CommitId, commit.BucketId);
+
+      TryRaven(() =>
+      {
+        using (TransactionScope scope = OpenCommandScope())
+        using (IDocumentSession session = _store.OpenSession())
+        {
+          session.Advanced.DocumentStore.DatabaseCommands.Batch(new[] { data });
+          session.SaveChanges();
+          scope.Complete();
+          return true;
+        }
+      });
+    }
+
+    private bool HasDocs(string index, IndexQuery query)
+    {
+      while (_store.DatabaseCommands.GetStatistics().StaleIndexes.Contains(index))
+        Thread.Sleep(50);
+      return _store.DatabaseCommands.Query(index, query, null, true).TotalResults != 0;
+    }
+
+    private void PurgeStorage(IDocumentSession session)
+    {
+      Func<Type, string> getTagCondition = t => "Tag:" + session.Advanced.DocumentStore.Conventions.GetTypeTagName(t);
+      var query = new IndexQuery { Query = String.Format("({0} OR {1} OR {2})", getTagCondition(typeof(RavenCommit)), getTagCondition(typeof(RavenSnapshot)), getTagCondition(typeof(RavenStreamHead))) };
+      const string index = "EventStoreDocumentsByEntityName";
+      while (HasDocs(index, query))
+        session.Advanced.DocumentStore.DatabaseCommands.DeleteByIndex(index, query, true);
+    }
+
+    private void PurgeBucket(IDocumentSession session, string bucketId)
+    {
+      //Modificato l'indice aggiungendo il bucketId e lo streamId
+      Func<Type, string> getTagCondition = t => "Tag:" + session.Advanced.DocumentStore.Conventions.GetTypeTagName(t);
+      var query = new IndexQuery { Query = String.Format("({0} OR {1} OR {2}) AND (BucketId: {3})", getTagCondition(typeof(RavenCommit)), getTagCondition(typeof(RavenSnapshot)), getTagCondition(typeof(RavenStreamHead)), bucketId) };
+      const string index = "EventStoreDocumentsByEntityName";
+      while (HasDocs(index, query))
+        session.Advanced.DocumentStore.DatabaseCommands.DeleteByIndex(index, query, true);
+    }
+
+    public virtual void Purge()
+    {
+      Logger.Warn(Messages.PurgingStorage);
+      TryRaven(() =>
+      {
+        using (TransactionScope scope = OpenCommandScope())
+        using (IDocumentSession session = _store.OpenSession())
+        {
+          PurgeStorage(session);
+          session.SaveChanges();
+          scope.Complete();
+          return true;
+        }
+      });
+    }
+
+    public virtual void Purge(string bucketId)
+    {
+      Logger.Warn(Messages.PurgingBucket, bucketId);
+      TryRaven(() =>
+      {
+        using (TransactionScope scope = OpenCommandScope())
+        using (IDocumentSession session = _store.OpenSession())
+        {
+          PurgeBucket(session, bucketId);
+          session.SaveChanges();
+          scope.Complete();
+          return true;
+        }
+      });
+    }
+
+    public virtual void Drop()
+    {
+      Purge();
+    }
+
+    public virtual void DeleteStream(string bucketId, string streamId)
+    {
+      Logger.Warn(Messages.DeletingStream, streamId, bucketId);
+      TryRaven(() =>
+      {
+        using (TransactionScope scope = OpenCommandScope())
+        using (IDocumentSession session = _store.OpenSession())
+        {
+          DeleteStream(session, bucketId, streamId);
+          session.SaveChanges();
+          scope.Complete();
+          return true;
+        }
+      });
+    }
+    private void DeleteStream(IDocumentSession session, string bucketId, string streamId)
+    {
+      //Modificato l'indice aggiungendo il bucketId e lo streamId
+      Func<Type, string> getTagCondition = t => "Tag:" + session.Advanced.DocumentStore.Conventions.GetTypeTagName(t);
+      var query = new IndexQuery { Query = String.Format("({0} OR {1} OR {2}) AND BucketId: {3} AND StreamId: {4}", getTagCondition(typeof(RavenCommit)), getTagCondition(typeof(RavenSnapshot)), getTagCondition(typeof(RavenStreamHead)), bucketId, streamId) };
+      const string index = "EventStoreDocumentsByEntityName";
+      while (HasDocs(index, query))
+        session.Advanced.DocumentStore.DatabaseCommands.DeleteByIndex(index, query, true);
+    }
+
+    public virtual IEnumerable<ICommit> GetFrom(string checkpointToken)
+    {
+      Logger.Debug(Messages.GettingAllCommitsFromCheckpoint, checkpointToken);
+      LongCheckpoint checkpoint = LongCheckpoint.Parse(checkpointToken);
+      //TODO: Riverificare l'orderBy, in quanto avviene con il numero in stringa e non numerico. Un modo sarebbe quello di spostare .ToCommit() in ongi query e non più nello helper
+      //Creato nuovo indice
+      return QueryCommits<RavenCommitByCheckpoint>(x => x.CheckpointNumber == checkpoint.LongValue).OrderBy(x => x.CheckpointToken);
+    }
+
+    public virtual ICommit Commit(CommitAttempt attempt)
+    {
+      Logger.Debug(Messages.AttemptingToCommit, attempt.Events.Count, attempt.StreamId, attempt.CommitSequence, attempt.BucketId);
+      try
+      {
+        var doc = attempt.ToRavenCommit(_serializer);
+        TryRaven(() =>
+        {
+          //TODO CheckpointNumber deve essere in autoinc. Usare un listener --> http://stackoverflow.com/a/12687849/394028
+          using (TransactionScope scope = OpenCommandScope())
+          using (IDocumentSession session = _store.OpenSession())
+          {
+            session.Advanced.UseOptimisticConcurrency = true;
+            //var doc = attempt.ToRavenCommit(_serializer);
+            session.Store(doc);
+            session.SaveChanges();
+            scope.Complete();
+          }
+          Logger.Debug(Messages.CommitPersisted, attempt.CommitId, attempt.BucketId);
+          if (_consistentQueries)
+            SaveStreamHeadAsync(attempt.ToRavenStreamHead());
+          else
+            ThreadPool.QueueUserWorkItem(x => SaveStreamHeadAsync(attempt.ToRavenStreamHead()), null);
+          return true;
+        });
+        return doc.ToCommit(_serializer);
+      }
+      catch (Raven.Abstractions.Exceptions.ConcurrencyException)
+      {
+        RavenCommit savedCommit = LoadSavedCommit(attempt);
+        if (savedCommit.CommitId == attempt.CommitId)
+          throw new DuplicateCommitException();
+        Logger.Debug(Messages.ConcurrentWriteDetected);
+        throw;
+      }
+    }
+
+    private void SaveStreamHeadAsync(RavenStreamHead updated)
+    {
+      TryRaven(() =>
+      {
+        using (TransactionScope scope = OpenCommandScope())
+        using (IDocumentSession session = _store.OpenSession())
+        {
+          RavenStreamHead current = session.Load<RavenStreamHead>(RavenStreamHead.GetStreamHeadId(updated.BucketId, updated.StreamId)) ?? updated;
+          current.HeadRevision = updated.HeadRevision;
+          if (updated.SnapshotRevision > 0)
+            current.SnapshotRevision = updated.SnapshotRevision;
+          session.Advanced.UseOptimisticConcurrency = false;
+          session.Store(current);
+          session.SaveChanges();
+          scope.Complete(); // if this fails it's no big deal, stream heads can be updated whenever
+        }
+        return true;
+      });
+    }
+
+    private RavenCommit LoadSavedCommit(CommitAttempt attempt)
+    {
+      Logger.Debug(Messages.DetectingConcurrency);
+      return TryRaven(() =>
+      {
+        using (TransactionScope scope = OpenQueryScope())
+        using (IDocumentSession session = _store.OpenSession())
+        {
+          var commit = session.Load<RavenCommit>(attempt.ToRavenCommitId());
+          scope.Complete();
+          return commit;
+        }
+      });
+    }
+
+    public virtual ISnapshot GetSnapshot(string bucketId, string streamId, int maxRevision)
     {
       throw new NotImplementedException();
     }
 
-    public void Purge()
+    public virtual bool AddSnapshot(ISnapshot snapshot)
     {
       throw new NotImplementedException();
     }
 
-    public void Purge(string bucketId)
+    public virtual IEnumerable<IStreamHead> GetStreamsToSnapshot(string bucketId, int maxThreshold)
     {
       throw new NotImplementedException();
     }
 
-    public void Drop()
+    protected virtual TransactionScope OpenCommandScope()
     {
-      throw new NotImplementedException();
+      return new TransactionScope(_scopeOption);
     }
 
-    public void DeleteStream(string bucketId, string streamId)
+    protected virtual TransactionScope OpenQueryScope()
     {
-      throw new NotImplementedException();
+      return OpenCommandScope() ?? new TransactionScope(TransactionScopeOption.Suppress);
     }
 
-    public IEnumerable<ICommit> GetFrom(string checkpointToken)
-    {
-      throw new NotImplementedException();
-    }
-
-    public ICommit Commit(CommitAttempt attempt)
-    {
-      throw new NotImplementedException();
-    }
-
-    public ISnapshot GetSnapshot(string bucketId, string streamId, int maxRevision)
-    {
-      throw new NotImplementedException();
-    }
-
-    public bool AddSnapshot(ISnapshot snapshot)
-    {
-      throw new NotImplementedException();
-    }
-
-    public IEnumerable<IStreamHead> GetStreamsToSnapshot(string bucketId, int maxThreshold)
-    {
-      throw new NotImplementedException();
-    }
   }
 }

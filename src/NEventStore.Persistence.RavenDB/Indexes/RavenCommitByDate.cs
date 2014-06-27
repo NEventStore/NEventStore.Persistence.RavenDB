@@ -1,8 +1,7 @@
 namespace NEventStore.Persistence.RavenDB.Indexes
 {
-  using System.Linq;
-  using NEventStore.Persistence.RavenDB;
   using Raven.Client.Indexes;
+  using System.Linq;
 
   public class RavenCommitByDate : AbstractIndexCreationTask<RavenCommit>
   {
