@@ -1,17 +1,26 @@
+using NEventStore.Serialization;
+using System;
 namespace NEventStore.Persistence.RavenDB.Tests
 {
-    using NEventStore.Persistence.RavenDB;
-    using Raven.Client;
-    using Raven.Client.Embedded;
 
-    public class InMemoryRavenPersistenceFactory : RavenPersistenceFactory
+  public class InMemoryRavenPersistenceFactory : RavenPersistenceFactory
+  {
+    public InMemoryRavenPersistenceFactory(string connectionName, IDocumentSerializer serializer, RavenPersistenceOptions options)
+      : base(connectionName, serializer, options)
     {
-        public InMemoryRavenPersistenceFactory(RavenConfiguration config) : base(config)
-        {}
 
-        protected override IDocumentStore GetStore()
-        {
-            return new EmbeddableDocumentStore {RunInMemory = true}.Initialize();
-        }
     }
+    
+
+    #region Old
+    //public InMemoryRavenPersistenceFactory(Raven.Database.Config.RavenConfiguration config)
+    //  : base(config)
+    //{ }
+
+    //protected override IDocumentStore GetStore()
+    //{
+    //  return new EmbeddableDocumentStore { RunInMemory = true }.Initialize();
+    //}
+    #endregion
+  }
 }

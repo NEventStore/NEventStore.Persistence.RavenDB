@@ -567,6 +567,11 @@
       });
     }
 
+    public IDocumentStore Store
+    {
+      get { return _store; }
+    }
+
     protected virtual T TryRaven<T>(Func<T> callback)
     {
       try
@@ -622,7 +627,13 @@
     #region Query Helpers
     private IEnumerable<ICommit> QueryCommits<TIndex>(Expression<Func<RavenCommit, bool>> query, Expression<Func<RavenCommit, object>> orderBy) where TIndex : AbstractIndexCreationTask, new()
     {
-      return new ResetableEnumerable<RavenCommit>(() => PagedQuery<RavenCommit, TIndex>(query, orderBy)).Select(x => x.ToCommit(_serializer));
+      return Query<RavenCommit, TIndex>(query, orderBy).Select(x => x.ToCommit(_serializer));
+    }
+
+    private IEnumerable<T> Query<T, TIndex>(Expression<Func<T, bool>> where, Expression<Func<T, object>> orderBy)
+    where TIndex : AbstractIndexCreationTask, new()
+    {
+      return new ResetableEnumerable<T>(() => PagedQuery<T, TIndex>(where, orderBy));
     }
 
     private IEnumerable<T> PagedQuery<T, TIndex>(Expression<Func<T, bool>> where, Expression<Func<T, object>> orderBy) where TIndex : AbstractIndexCreationTask, new()
@@ -855,10 +866,7 @@
             scope.Complete();
           }
           Logger.Debug(Messages.CommitPersisted, attempt.CommitId, attempt.BucketId);
-          if (_consistentQueries)
-            SaveStreamHeadAsync(attempt.ToRavenStreamHead());
-          else
-            ThreadPool.QueueUserWorkItem(x => SaveStreamHeadAsync(attempt.ToRavenStreamHead()), null);
+          SaveStreamHead(attempt.ToRavenStreamHead());
           return true;
         });
         return doc.ToCommit(_serializer);
@@ -871,6 +879,14 @@
         Logger.Debug(Messages.ConcurrentWriteDetected);
         throw;
       }
+    }
+
+    private void SaveStreamHead(RavenStreamHead streamHead)
+    {
+      if (_consistentQueries)
+        SaveStreamHeadAsync(streamHead);
+      else
+        ThreadPool.QueueUserWorkItem(x => SaveStreamHeadAsync(streamHead), null);
     }
 
     private void SaveStreamHeadAsync(RavenStreamHead updated)
@@ -910,17 +926,45 @@
 
     public virtual ISnapshot GetSnapshot(string bucketId, string streamId, int maxRevision)
     {
-      throw new NotImplementedException();
+      Logger.Debug(Messages.GettingRevision, streamId, maxRevision);
+      return Query<RavenSnapshot, RavenSnapshotByStreamIdAndRevision>(x => x.BucketId == bucketId && x.StreamId == streamId && x.StreamRevision <= maxRevision, x => x.StreamRevision)
+        .FirstOrDefault()
+        .ToSnapshot(_serializer);
     }
 
     public virtual bool AddSnapshot(ISnapshot snapshot)
     {
-      throw new NotImplementedException();
+      if (snapshot == null)
+      {
+        return false;
+      }
+      Logger.Debug(Messages.AddingSnapshot, snapshot.StreamId, snapshot.BucketId, snapshot.StreamRevision);
+      try
+      {
+        return TryRaven(() =>
+        {
+          using (TransactionScope scope = OpenCommandScope())
+          using (IDocumentSession session = _store.OpenSession())
+          {
+            RavenSnapshot ravenSnapshot = snapshot.ToRavenSnapshot(_serializer);
+            session.Store(ravenSnapshot);
+            session.SaveChanges();
+            scope.Complete();
+          }
+          SaveStreamHead(snapshot.ToRavenStreamHead());
+          return true;
+        });
+      }
+      catch (Raven.Abstractions.Exceptions.ConcurrencyException)
+      {
+        return false;
+      }
     }
 
     public virtual IEnumerable<IStreamHead> GetStreamsToSnapshot(string bucketId, int maxThreshold)
     {
-      throw new NotImplementedException();
+      Logger.Debug(Messages.GettingStreamsToSnapshot, bucketId);
+      return Query<RavenStreamHead, RavenStreamHeadBySnapshotAge>(s => s.BucketId == bucketId && s.SnapshotAge >= maxThreshold, x => x.StreamId).Select(s => s.ToStreamHead());
     }
 
     protected virtual TransactionScope OpenCommandScope()

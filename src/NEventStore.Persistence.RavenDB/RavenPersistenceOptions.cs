@@ -23,21 +23,18 @@
 
 
     public RavenPersistenceOptions()
-      : this(defaultDatabaseName, defaultPageSize, defaultConsistentQueries, defaultScopeOption)
-    { }
-    public RavenPersistenceOptions(string databaseName)
-      : this(databaseName, defaultPageSize, defaultConsistentQueries, defaultScopeOption)
+      : this(defaultPageSize, defaultConsistentQueries, defaultScopeOption, defaultDatabaseName)
     { }
 
-    public RavenPersistenceOptions(string databaseName, int pageSize)
-      : this(databaseName, pageSize, defaultConsistentQueries, defaultScopeOption)
+    public RavenPersistenceOptions(int pageSize)
+      : this(pageSize, defaultConsistentQueries, defaultScopeOption, defaultDatabaseName)
     { }
 
-    public RavenPersistenceOptions(string databaseName, int pageSize, bool consistentQueries)
-      : this(databaseName, pageSize, consistentQueries, defaultScopeOption)
+    public RavenPersistenceOptions(int pageSize, bool consistentQueries, TransactionScopeOption scopeOption)
+      : this(pageSize, consistentQueries, scopeOption, defaultDatabaseName)
     { }
 
-    public RavenPersistenceOptions(string databaseName, int pageSize, bool consistentQueries, TransactionScopeOption scopeOption)
+    public RavenPersistenceOptions(int pageSize, bool consistentQueries, TransactionScopeOption scopeOption, string databaseName)
     {
       PageSize = (pageSize > maxServerPageSize) ? maxServerPageSize : pageSize;
       DatabaseName = databaseName;
