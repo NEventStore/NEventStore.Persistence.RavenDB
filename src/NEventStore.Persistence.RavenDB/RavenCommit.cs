@@ -17,7 +17,7 @@ namespace NEventStore.Persistence.RavenDB
     public DateTime CommitStamp { get; set; }
 
     [SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly", Justification = "This is a simple DTO and is only used internally by Raven.")]
-    public Dictionary<string, object> Headers { get; set; }
+    public IDictionary<string, object> Headers { get; set; }
 
     [JsonProperty(TypeNameHandling = TypeNameHandling.All)]
     public object Payload { get; set; }

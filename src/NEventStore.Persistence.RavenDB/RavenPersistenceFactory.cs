@@ -59,7 +59,7 @@
       this.serializer = serializer;
     }
 
-    public IPersistStreams Build()
+    public virtual IPersistStreams Build()
     {
       return new RavenPersistenceEngine(options.GetDocumentStore(connectionName), serializer, options);
     }

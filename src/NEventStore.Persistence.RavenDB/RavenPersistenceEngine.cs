@@ -521,7 +521,6 @@
     #endregion
 
     private int _initialized;
-    private const int MinPageSize = 10;
     private static readonly ILog Logger = LogFactory.BuildLogger(typeof(RavenPersistenceEngine));
     private readonly TransactionScopeOption _scopeOption;
     private readonly bool _consistentQueries;
@@ -555,12 +554,13 @@
       {
         using (TransactionScope scope = OpenCommandScope())
         {
+          new EventStoreDocumentsByEntityName().Execute(_store);
+          new RavenCommitByCheckpoint().Execute(_store);
           new RavenCommitByDate().Execute(_store);
           new RavenCommitByRevisionRange().Execute(_store);
           new RavenCommitsByDispatched().Execute(_store);
           new RavenSnapshotByStreamIdAndRevision().Execute(_store);
           new RavenStreamHeadBySnapshotAge().Execute(_store);
-          new EventStoreDocumentsByEntityName().Execute(_store);
           scope.Complete();
         }
         return true;
@@ -620,17 +620,12 @@
     }
 
     #region Query Helpers
-    private IEnumerable<ICommit> QueryCommits<TIndex>(Expression<Func<RavenCommit, bool>> query) where TIndex : AbstractIndexCreationTask, new()
+    private IEnumerable<ICommit> QueryCommits<TIndex>(Expression<Func<RavenCommit, bool>> query, Expression<Func<RavenCommit, object>> orderBy) where TIndex : AbstractIndexCreationTask, new()
     {
-      return Query<RavenCommit, TIndex>(query).Select(x => x.ToCommit(_serializer));
+      return new ResetableEnumerable<RavenCommit>(() => PagedQuery<RavenCommit, TIndex>(query, orderBy)).Select(x => x.ToCommit(_serializer));
     }
 
-    private IEnumerable<T> Query<T, TIndex>(params Expression<Func<T, bool>>[] conditions) where TIndex : AbstractIndexCreationTask, new()
-    {
-      return new ResetableEnumerable<T>(() => PagedQuery<T, TIndex>(conditions));
-    }
-
-    private IEnumerable<T> PagedQuery<T, TIndex>(Expression<Func<T, bool>>[] conditions) where TIndex : AbstractIndexCreationTask, new()
+    private IEnumerable<T> PagedQuery<T, TIndex>(Expression<Func<T, bool>> where, Expression<Func<T, object>> orderBy) where TIndex : AbstractIndexCreationTask, new()
     {
       int total = 0;
       RavenQueryStatistics stats;
@@ -641,7 +636,7 @@
           int requestsForSession = 0;
           do
           {
-            T[] docs = PerformQuery<T, TIndex>(session, conditions, total, _pageSize, out stats);
+            T[] docs = PerformQuery<T, TIndex>(session, where, orderBy, total, _pageSize, out stats);
             total += docs.Length;
             requestsForSession++;
             foreach (var d in docs)
@@ -652,7 +647,7 @@
     }
 
     private T[] PerformQuery<T, TIndex>(
-        IDocumentSession session, IEnumerable<Expression<Func<T, bool>>> conditions, int skip, int take, out RavenQueryStatistics stats)
+        IDocumentSession session, Expression<Func<T, bool>> where, Expression<Func<T, object>> orderBy, int skip, int take, out RavenQueryStatistics stats)
         where TIndex : AbstractIndexCreationTask, new()
     {
       try
@@ -663,8 +658,10 @@
           {
             if (_consistentQueries)
               x.WaitForNonStaleResults();
-          }).Statistics(out stats);
-          query = conditions.Aggregate(query, (current, condition) => current.Where(condition));
+          })
+          .Statistics(out stats)
+          .Where(where)
+          .OrderBy(orderBy);
           var results = query.Skip(skip).Take(take).ToArray();
           scope.Complete();
           return results;
@@ -691,14 +688,14 @@
     public virtual IEnumerable<ICommit> GetFrom(string bucketId, string streamId, int minRevision, int maxRevision)
     {
       Logger.Debug(Messages.GettingAllCommitsBetween, streamId, bucketId, minRevision, maxRevision);
-      return QueryCommits<RavenCommitByRevisionRange>(x => x.BucketId == bucketId && x.StreamId == streamId && x.StreamRevision >= minRevision && x.StartingStreamRevision <= maxRevision)
-        .OrderBy(x => x.CommitSequence);
+      return QueryCommits<RavenCommitByRevisionRange>(x => x.BucketId == bucketId && x.StreamId == streamId && x.StreamRevision >= minRevision && x.StartingStreamRevision <= maxRevision, x => x.CommitSequence);
+
     }
 
     public virtual IEnumerable<ICommit> GetFrom(string bucketId, DateTime start)
     {
       Logger.Debug(Messages.GettingAllCommitsFrom, start, bucketId);
-      return QueryCommits<RavenCommitByDate>(x => x.BucketId == bucketId && x.CommitStamp >= start).OrderBy(x => x.CommitStamp);
+      return QueryCommits<RavenCommitByDate>(x => x.BucketId == bucketId && x.CommitStamp >= start, x => x.CommitStamp);
     }
 
     public ICheckpoint GetCheckpoint(string checkpointToken)
@@ -709,13 +706,13 @@
     public virtual IEnumerable<ICommit> GetFromTo(string bucketId, DateTime start, DateTime end)
     {
       Logger.Debug(Messages.GettingAllCommitsFromTo, start, end);
-      return QueryCommits<RavenCommitByDate>(x => x.BucketId == bucketId && x.CommitStamp >= start && x.CommitStamp < end).OrderBy(x => x.CommitStamp); //.ThenBy(x => x.StreamId).ThenBy(x => x.CommitSequence);
+      return QueryCommits<RavenCommitByDate>(x => x.BucketId == bucketId && x.CommitStamp >= start && x.CommitStamp < end, x => x.CommitStamp); //.ThenBy(x => x.StreamId).ThenBy(x => x.CommitSequence);
     }
 
     public virtual IEnumerable<ICommit> GetUndispatchedCommits()
     {
       Logger.Debug(Messages.GettingUndispatchedCommits);
-      return QueryCommits<RavenCommitsByDispatched>(x => !x.Dispatched).OrderBy(x => x.CheckpointToken);
+      return QueryCommits<RavenCommitsByDispatched>(x => !x.Dispatched, x => x.CheckpointNumber);
     }
 
     public virtual void MarkCommitAsDispatched(ICommit commit)
@@ -762,7 +759,7 @@
 
     private void PurgeBucket(IDocumentSession session, string bucketId)
     {
-      //Modificato l'indice aggiungendo il bucketId e lo streamId
+      //TODO: To test -> Edited index by adding bucketId and streamId
       Func<Type, string> getTagCondition = t => "Tag:" + session.Advanced.DocumentStore.Conventions.GetTypeTagName(t);
       var query = new IndexQuery { Query = String.Format("({0} OR {1} OR {2}) AND (BucketId: {3})", getTagCondition(typeof(RavenCommit)), getTagCondition(typeof(RavenSnapshot)), getTagCondition(typeof(RavenStreamHead)), bucketId) };
       const string index = "EventStoreDocumentsByEntityName";
@@ -822,9 +819,10 @@
         }
       });
     }
+
     private void DeleteStream(IDocumentSession session, string bucketId, string streamId)
     {
-      //Modificato l'indice aggiungendo il bucketId e lo streamId
+      //TODO: To test -> Edited index by adding bucketId and streamId
       Func<Type, string> getTagCondition = t => "Tag:" + session.Advanced.DocumentStore.Conventions.GetTypeTagName(t);
       var query = new IndexQuery { Query = String.Format("({0} OR {1} OR {2}) AND BucketId: {3} AND StreamId: {4}", getTagCondition(typeof(RavenCommit)), getTagCondition(typeof(RavenSnapshot)), getTagCondition(typeof(RavenStreamHead)), bucketId, streamId) };
       const string index = "EventStoreDocumentsByEntityName";
@@ -836,9 +834,7 @@
     {
       Logger.Debug(Messages.GettingAllCommitsFromCheckpoint, checkpointToken);
       LongCheckpoint checkpoint = LongCheckpoint.Parse(checkpointToken);
-      //TODO: Riverificare l'orderBy, in quanto avviene con il numero in stringa e non numerico. Un modo sarebbe quello di spostare .ToCommit() in ongi query e non più nello helper
-      //Creato nuovo indice
-      return QueryCommits<RavenCommitByCheckpoint>(x => x.CheckpointNumber == checkpoint.LongValue).OrderBy(x => x.CheckpointToken);
+      return QueryCommits<RavenCommitByCheckpoint>(x => x.CheckpointNumber == checkpoint.LongValue, x => x.CheckpointNumber);
     }
 
     public virtual ICommit Commit(CommitAttempt attempt)
@@ -849,7 +845,6 @@
         var doc = attempt.ToRavenCommit(_serializer);
         TryRaven(() =>
         {
-          //TODO CheckpointNumber deve essere in autoinc. Usare un listener --> http://stackoverflow.com/a/12687849/394028
           using (TransactionScope scope = OpenCommandScope())
           using (IDocumentSession session = _store.OpenSession())
           {

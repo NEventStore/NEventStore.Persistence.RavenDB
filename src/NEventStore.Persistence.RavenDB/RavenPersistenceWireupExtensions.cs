@@ -21,7 +21,7 @@ namespace NEventStore
     {
       return new RavenPersistenceWireup(wireup, connectionName, serializer);
     }
-    
+
     public static RavenPersistenceWireup UsingRavenPersistence(this Wireup wireup, string connectionName, IDocumentSerializer serializer, RavenPersistenceOptions options)
     {
       return new RavenPersistenceWireup(wireup, connectionName, serializer, options);

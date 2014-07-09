@@ -2,6 +2,7 @@
 {
   using Raven.Client;
   using Raven.Client.Document;
+  using Raven.Client.Listeners;
   using System;
   using System.Transactions;
 
@@ -52,9 +53,8 @@
       store.ConnectionStringName = connectionName;
       store.DefaultDatabase = !string.IsNullOrEmpty(DatabaseName) ? DatabaseName : defaultDatabaseName;
       store.Initialize();
+      store.RegisterListener(new CheckpointNumberIncrementListener(store));
       return store;
     }
-
-
   }
 }
