@@ -17,14 +17,14 @@ namespace NEventStore
     //}
     #endregion
 
-    public static RavenPersistenceWireup UsingRavenPersistence(this Wireup wireup, string connectionName, IDocumentSerializer serializer)
+    public static RavenPersistenceWireup UsingRavenPersistence(this Wireup wireup, string connectionName)
     {
-      return new RavenPersistenceWireup(wireup, connectionName, serializer);
+      return new RavenPersistenceWireup(wireup, connectionName);
     }
 
-    public static RavenPersistenceWireup UsingRavenPersistence(this Wireup wireup, string connectionName, IDocumentSerializer serializer, RavenPersistenceOptions options)
+    public static RavenPersistenceWireup UsingRavenPersistence(this Wireup wireup, string connectionName, RavenPersistenceOptions options)
     {
-      return new RavenPersistenceWireup(wireup, connectionName, serializer, options);
+      return new RavenPersistenceWireup(wireup, connectionName, options);
     }
   }
 

@@ -853,23 +853,21 @@
       Logger.Debug(Messages.AttemptingToCommit, attempt.Events.Count, attempt.StreamId, attempt.CommitSequence, attempt.BucketId);
       try
       {
-        var doc = attempt.ToRavenCommit(_serializer);
-        TryRaven(() =>
+        return TryRaven(() =>
         {
+          var doc = attempt.ToRavenCommit(_serializer);
           using (TransactionScope scope = OpenCommandScope())
           using (IDocumentSession session = _store.OpenSession())
           {
             session.Advanced.UseOptimisticConcurrency = true;
-            //var doc = attempt.ToRavenCommit(_serializer);
             session.Store(doc);
             session.SaveChanges();
             scope.Complete();
           }
           Logger.Debug(Messages.CommitPersisted, attempt.CommitId, attempt.BucketId);
           SaveStreamHead(attempt.ToRavenStreamHead());
-          return true;
+          return doc.ToCommit(_serializer);
         });
-        return doc.ToCommit(_serializer);
       }
       catch (Raven.Abstractions.Exceptions.ConcurrencyException)
       {

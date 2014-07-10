@@ -20,7 +20,7 @@ namespace NEventStore.Persistence.RavenDB
     public IDictionary<string, object> Headers { get; set; }
 
     [JsonProperty(TypeNameHandling = TypeNameHandling.All)]
-    public object Payload { get; set; }
+    public IList<EventMessage> Payload { get; set; }
 
     public bool Dispatched { get; set; }
 

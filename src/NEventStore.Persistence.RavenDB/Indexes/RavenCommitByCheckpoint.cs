@@ -8,6 +8,7 @@ namespace NEventStore.Persistence.RavenDB.Indexes
     public RavenCommitByCheckpoint()
     {
       Map = commits => from c in commits select new { c.CheckpointNumber };
+      Sort(x => x.CheckpointNumber, Raven.Abstractions.Indexing.SortOptions.Long);
     }
   }
 }

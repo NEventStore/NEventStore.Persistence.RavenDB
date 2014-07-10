@@ -172,15 +172,26 @@ namespace NEventStore
     //Paciughi Ale
     private static readonly ILog Logger = LogFactory.BuildLogger(typeof(RavenPersistenceWireup));
 
-    public RavenPersistenceWireup(Wireup wireup, string connectionName, IDocumentSerializer serializer)
-      : this(wireup, connectionName, serializer, new RavenPersistenceOptions())
+    //public RavenPersistenceWireup(Wireup wireup, string connectionName, IDocumentSerializer serializer)
+    //  : this(wireup, connectionName, serializer, new RavenPersistenceOptions())
+    //{ }
+
+    //public RavenPersistenceWireup(Wireup wireup, string connectionName, IDocumentSerializer serializer, RavenPersistenceOptions persistenceOptions)
+    //  : base(wireup)
+    //{
+    //  Logger.Debug("Configuring Raven persistence engine.");
+    //  Container.Register(c => new RavenPersistenceFactory(connectionName, serializer, persistenceOptions).Build());
+    //}
+
+    public RavenPersistenceWireup(Wireup wireup, string connectionName)
+      : this(wireup, connectionName, new RavenPersistenceOptions())
     { }
 
-    public RavenPersistenceWireup(Wireup wireup, string connectionName, IDocumentSerializer serializer, RavenPersistenceOptions persistenceOptions)
+    public RavenPersistenceWireup(Wireup wireup, string connectionName, RavenPersistenceOptions persistenceOptions)
       : base(wireup)
     {
       Logger.Debug("Configuring Raven persistence engine.");
-      Container.Register(c => new RavenPersistenceFactory(connectionName, serializer, persistenceOptions).Build());
+      Container.Register(c => new RavenPersistenceFactory(connectionName, new DocumentObjectSerializer(), persistenceOptions).Build());
     }
   }
 }

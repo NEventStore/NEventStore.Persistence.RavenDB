@@ -48,7 +48,8 @@
         throw new ArgumentNullException("connectionName");
       var store = new DocumentStore();
       store.ConnectionStringName = connectionName;
-      store.DefaultDatabase = !string.IsNullOrEmpty(DatabaseName) ? DatabaseName : defaultDatabaseName;
+      if (string.IsNullOrEmpty(store.DefaultDatabase))
+        store.DefaultDatabase = !string.IsNullOrEmpty(DatabaseName) ? DatabaseName : defaultDatabaseName;
       store.Initialize();
       store.RegisterListener(new CheckpointNumberIncrementListener(store));
       return store;

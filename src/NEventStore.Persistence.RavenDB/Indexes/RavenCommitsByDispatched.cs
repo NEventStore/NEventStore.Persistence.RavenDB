@@ -7,7 +7,8 @@ namespace NEventStore.Persistence.RavenDB.Indexes
   {
     public RavenCommitsByDispatched()
     {
-      Map = commits => from c in commits select new { c.Dispatched };
+      Map = commits => from c in commits select new { c.Dispatched, c.CheckpointNumber };
+      Sort(x => x.CheckpointNumber, Raven.Abstractions.Indexing.SortOptions.Long);
     }
   }
 }
