@@ -48,9 +48,9 @@
     //#pragma warning restore 612,618
     #endregion
 
-    private readonly string connectionName;
-    private readonly RavenPersistenceOptions options;
-    private readonly IDocumentSerializer serializer;
+    protected readonly string connectionName;
+    protected readonly RavenPersistenceOptions options;
+    protected readonly IDocumentSerializer serializer;
 
     public RavenPersistenceFactory(string connectionName, IDocumentSerializer serializer, RavenPersistenceOptions options)
     {

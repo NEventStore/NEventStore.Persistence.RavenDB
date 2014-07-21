@@ -588,7 +588,7 @@
         Logger.Warn(Messages.DuplicateCommitDetected);
         throw new DuplicateCommitException(e.Message, e);
       }
-      catch (ConcurrencyException)
+      catch (Raven.Abstractions.Exceptions.ConcurrencyException)
       {
         Logger.Warn(Messages.ConcurrentWriteDetected);
         throw;
@@ -630,13 +630,13 @@
       return Query<RavenCommit, TIndex>(query, orderBy).Select(x => x.ToCommit(_serializer));
     }
 
-    private IEnumerable<T> Query<T, TIndex>(Expression<Func<T, bool>> where, Expression<Func<T, object>> orderBy)
+    private IEnumerable<T> Query<T, TIndex>(Expression<Func<T, bool>> where, Expression<Func<T, object>> orderBy, bool orderDesc = false)
     where TIndex : AbstractIndexCreationTask, new()
     {
-      return new ResetableEnumerable<T>(() => PagedQuery<T, TIndex>(where, orderBy));
+      return new ResetableEnumerable<T>(() => PagedQuery<T, TIndex>(where, orderBy, orderDesc));
     }
 
-    private IEnumerable<T> PagedQuery<T, TIndex>(Expression<Func<T, bool>> where, Expression<Func<T, object>> orderBy) where TIndex : AbstractIndexCreationTask, new()
+    private IEnumerable<T> PagedQuery<T, TIndex>(Expression<Func<T, bool>> where, Expression<Func<T, object>> orderBy, bool orderDesc = false) where TIndex : AbstractIndexCreationTask, new()
     {
       int total = 0;
       RavenQueryStatistics stats;
@@ -647,7 +647,7 @@
           int requestsForSession = 0;
           do
           {
-            T[] docs = PerformQuery<T, TIndex>(session, where, orderBy, total, _pageSize, out stats);
+            T[] docs = PerformQuery<T, TIndex>(session, where, orderBy, orderDesc, total, _pageSize, out stats);
             total += docs.Length;
             requestsForSession++;
             foreach (var d in docs)
@@ -658,7 +658,7 @@
     }
 
     private T[] PerformQuery<T, TIndex>(
-        IDocumentSession session, Expression<Func<T, bool>> where, Expression<Func<T, object>> orderBy, int skip, int take, out RavenQueryStatistics stats)
+        IDocumentSession session, Expression<Func<T, bool>> where, Expression<Func<T, object>> orderBy, bool orderDesc, int skip, int take, out RavenQueryStatistics stats)
         where TIndex : AbstractIndexCreationTask, new()
     {
       try
@@ -671,8 +671,11 @@
               x.WaitForNonStaleResults();
           })
           .Statistics(out stats)
-          .Where(where)
-          .OrderBy(orderBy);
+          .Where(where);
+          if (orderDesc)
+            query = query.OrderByDescending(orderBy);
+          else
+            query = query.OrderBy(orderBy);
           var results = query.Skip(skip).Take(take).ToArray();
           scope.Complete();
           return results;
@@ -845,7 +848,7 @@
     {
       Logger.Debug(Messages.GettingAllCommitsFromCheckpoint, checkpointToken);
       LongCheckpoint checkpoint = LongCheckpoint.Parse(checkpointToken);
-      return QueryCommits<RavenCommitByCheckpoint>(x => x.CheckpointNumber == checkpoint.LongValue, x => x.CheckpointNumber);
+      return QueryCommits<RavenCommitByCheckpoint>(x => x.CheckpointNumber > checkpoint.LongValue, x => x.CheckpointNumber);
     }
 
     public virtual ICommit Commit(CommitAttempt attempt)
@@ -875,8 +878,9 @@
         if (savedCommit.CommitId == attempt.CommitId)
           throw new DuplicateCommitException();
         Logger.Debug(Messages.ConcurrentWriteDetected);
-        throw;
+        throw new ConcurrencyException();
       }
+
     }
 
     private void SaveStreamHead(RavenStreamHead streamHead)
@@ -925,7 +929,7 @@
     public virtual ISnapshot GetSnapshot(string bucketId, string streamId, int maxRevision)
     {
       Logger.Debug(Messages.GettingRevision, streamId, maxRevision);
-      return Query<RavenSnapshot, RavenSnapshotByStreamIdAndRevision>(x => x.BucketId == bucketId && x.StreamId == streamId && x.StreamRevision <= maxRevision, x => x.StreamRevision)
+      return Query<RavenSnapshot, RavenSnapshotByStreamIdAndRevision>(x => x.BucketId == bucketId && x.StreamId == streamId && x.StreamRevision <= maxRevision, x => x.StreamRevision, true)
         .FirstOrDefault()
         .ToSnapshot(_serializer);
     }

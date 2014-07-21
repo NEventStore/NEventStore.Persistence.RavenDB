@@ -2,7 +2,6 @@
 {
   using Raven.Client;
   using Raven.Client.Document;
-  using Raven.Client.Listeners;
   using System;
   using System.Transactions;
 
