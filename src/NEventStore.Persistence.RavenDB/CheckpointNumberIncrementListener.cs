@@ -5,8 +5,6 @@ namespace NEventStore.Persistence.RavenDB
   using Raven.Client.Listeners;
   using Raven.Json.Linq;
 
-  //https://groups.google.com/forum/#!msg/ravendb/70xaVjoMidU/ssDs4mbKoxQJ
-  //TODO: To Test
   public class CheckpointNumberIncrementListener : IDocumentStoreListener
   {
     HiLoKeyGenerator _generator;
@@ -21,6 +19,7 @@ namespace NEventStore.Persistence.RavenDB
     {
     }
 
+    //TODO: Write couple tests to be sure
     public bool BeforeStore(string key, object entityInstance, RavenJObject metadata, RavenJObject original)
     {
       var commit = entityInstance as RavenCommit;

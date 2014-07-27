@@ -14,10 +14,9 @@ namespace NEventStore.Persistence.RavenDB.Indexes
     {
       return new IndexDefinition
       {
-        Map = @"from doc in docs 
-                        let Tag = doc[""@metadata""][""Raven-Entity-Name""]
-                        where  Tag != null 
-                        select new { Tag, LastModified = (DateTime)doc[""@metadata""][""Last-Modified""], Partition = doc.Partition ?? null, BucketId = doc.BucketId ?? null, StreamId = doc.StreamId ?? null };",
+        Map = @"from doc in docs let Tag = doc[""@metadata""][""Raven-Entity-Name""]
+                where  Tag != null 
+                select new { Tag, LastModified = (DateTime)doc[""@metadata""][""Last-Modified""], Partition = doc.Partition ?? null, BucketId = doc.BucketId ?? null, StreamId = doc.StreamId ?? null };",
         Indexes = { { "Tag", FieldIndexing.NotAnalyzed } },
         Stores = { { "Tag", FieldStorage.No }, { "LastModified", FieldStorage.No }, { "Partition", FieldStorage.No }, { "BucketId", FieldStorage.No }, { "StreamId", FieldStorage.No } }
       };
