@@ -12,7 +12,7 @@
     // ReSharper disable InconsistentNaming
     public class when_querying_within_ambient_transaction : using_raven_persistence_with_ambient_transaction
     {
-        Exception exception;
+        private Exception exception;
 
         protected override void Because()
         {
@@ -30,12 +30,17 @@
     {
         private TransactionScope ambientTransaction;
         protected IPersistStreams ravenPersistence;
+        protected RavenAmbientTransactionFixture Data { get; private set; }
+
+        public void SetFixture(RavenAmbientTransactionFixture data)
+        {
+            Data = data;
+        }
 
         protected override void Context()
         {
-            ravenPersistence = Data.EventStoreUsingAmbientTransaction(); 
-           ambientTransaction = new TransactionScope(); 
-            
+            ravenPersistence = Data.EventStoreUsingAmbientTransaction();
+            ambientTransaction = new TransactionScope();
         }
 
         protected override void Cleanup()
@@ -43,30 +48,11 @@
             ambientTransaction.Complete();
             ambientTransaction.Dispose();
         }
-
-
-        public void SetFixture(RavenAmbientTransactionFixture data)
-        {
-            Data = data;
-        }
-
-        protected RavenAmbientTransactionFixture Data { get; private set; }
     }
 
     public class RavenAmbientTransactionFixture : IDisposable
     {
         protected List<IPersistStreams> instantiatedPersistence = new List<IPersistStreams>();
-
-        public IPersistStreams EventStoreUsingAmbientTransaction()
-        {
-            var config = TestRavenConfig.GetDefaultConfig();
-            config.ScopeOption = TransactionScopeOption.Required; // use an existing transaction-scope, if available
-
-            var persistence = new InMemoryRavenPersistenceFactory(config).Build();
-            persistence.Initialize();
-
-            return persistence;
-        }
 
         public void Dispose()
         {
@@ -75,6 +61,17 @@
                 persistence.Dispose();
             }
         }
+
+        public IPersistStreams EventStoreUsingAmbientTransaction()
+        {
+            // use an existing transaction-scope, if available
+            IPersistStreams persistence = new InMemoryRavenPersistenceFactory(TestRavenConfig.ConnectionName, TestRavenConfig.Serializer,
+                new RavenPersistenceOptions(TestRavenConfig.PageSize, TestRavenConfig.ConsistentQueries, TransactionScopeOption.Required)
+                ).Build();
+            persistence.Initialize();
+            return persistence;
+        }
     }
-// ReSharper restore InconsistentNaming
+
+    // ReSharper restore InconsistentNaming
 }

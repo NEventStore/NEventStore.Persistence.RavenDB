@@ -1,17 +1,22 @@
 namespace NEventStore.Persistence.RavenDB.Tests
 {
-    using NEventStore.Persistence.RavenDB;
-    using Raven.Client;
+    using NEventStore.Serialization;
     using Raven.Client.Embedded;
 
     public class InMemoryRavenPersistenceFactory : RavenPersistenceFactory
     {
-        public InMemoryRavenPersistenceFactory(RavenConfiguration config) : base(config)
+        public InMemoryRavenPersistenceFactory(string connectionName, IDocumentSerializer serializer,
+            RavenPersistenceOptions options)
+            : base(connectionName, serializer, options)
         {}
 
-        protected override IDocumentStore GetStore()
+        public override IPersistStreams Build()
         {
-            return new EmbeddableDocumentStore {RunInMemory = true}.Initialize();
+            var embeddedStore = new EmbeddableDocumentStore();
+            embeddedStore.Configuration.RunInMemory = true;
+            embeddedStore.RegisterListener(new CheckpointNumberIncrementListener(embeddedStore));
+            embeddedStore.Initialize();
+            return new RavenPersistenceEngine(embeddedStore, Serializer, Options);
         }
     }
 }

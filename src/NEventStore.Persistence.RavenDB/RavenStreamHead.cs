@@ -15,9 +15,7 @@ namespace NEventStore.Persistence.RavenDB
 
         public static string GetStreamHeadId(string bucketId, string streamId)
         {
-            string id = string.Format("StreamHeads/{0}/{1}", bucketId, streamId);
-
-            return id;
+            return string.Format("StreamHeads/{0}/{1}", bucketId, streamId);
         }
     }
 }

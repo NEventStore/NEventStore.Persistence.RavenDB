@@ -41,8 +41,10 @@
     <Compile Include="..\VersionAssemblyInfo.cs">
       <Link>Properties\VersionAssemblyInfo.cs</Link>
     </Compile>
+    <Compile Include="CheckpointNumberIncrementListener.cs" />
     <Compile Include="ExtensionMethods.cs" />
     <Compile Include="Indexes\EventStoreDocumentsByEntityName.cs" />
+    <Compile Include="Indexes\RavenCommitByCheckpoint.cs" />
     <Compile Include="Indexes\RavenCommitsByDispatched.cs" />
     <Compile Include="Indexes\RavenCommitByRevisionRange.cs" />
     <Compile Include="Indexes\RavenCommitByDate.cs" />
@@ -53,10 +55,10 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>Messages.resx</DependentUpon>
     </Compile>
+    <Compile Include="RavenPersistenceOptions.cs" />
     <Compile Include="RavenPersistenceWireup.cs" />
     <Compile Include="RavenPersistenceWireupExtensions.cs" />
     <Compile Include="ResetableEnumerable.cs" />
-    <Compile Include="RavenConfiguration.cs" />
     <Compile Include="RavenStreamHead.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RavenCommit.cs" />
@@ -71,11 +73,11 @@
     </Reference>
     <Reference Include="Raven.Abstractions, Version=2.5.0.0, Culture=neutral, PublicKeyToken=37f41c7f99471593, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\packages\RavenDB.Client.2.5.2666\lib\net40\Raven.Abstractions.dll</HintPath>
+      <HintPath>..\packages\RavenDB.Client.2.5.2910\lib\net40\Raven.Abstractions.dll</HintPath>
     </Reference>
     <Reference Include="Raven.Client.Lightweight, Version=2.5.0.0, Culture=neutral, PublicKeyToken=37f41c7f99471593, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\packages\RavenDB.Client.2.5.2666\lib\net40\Raven.Client.Lightweight.dll</HintPath>
+      <HintPath>..\packages\RavenDB.Client.2.5.2910\lib\net40\Raven.Client.Lightweight.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.ComponentModel.Composition" />

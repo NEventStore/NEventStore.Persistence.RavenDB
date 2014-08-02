@@ -1,6 +1,4 @@
 
-#pragma warning disable 169
-
 namespace NEventStore.Persistence.RavenDB.Tests
 {
     using System;
@@ -8,7 +6,6 @@ namespace NEventStore.Persistence.RavenDB.Tests
     using System.Linq;
     using NEventStore.Persistence.AcceptanceTests;
     using NEventStore.Persistence.AcceptanceTests.BDD;
-    using NEventStore.Persistence.RavenDB;
     using Xunit;
     using Xunit.Should;
 
@@ -70,7 +67,7 @@ namespace NEventStore.Persistence.RavenDB.Tests
     }
 
     public class when_getting_paged_commits_and_a_subsequent_page_throws_an_error : SpecificationBase,
-                                                                                    IUseFixture<RavenPersistenceEngineFixture>
+        IUseFixture<RavenPersistenceEngineFixture>
     {
         private const int NumberOfCommits = 30;
         private Exception _exception;
@@ -112,5 +109,3 @@ namespace NEventStore.Persistence.RavenDB.Tests
         }
     }
 }
-
-#pragma warning restore 169

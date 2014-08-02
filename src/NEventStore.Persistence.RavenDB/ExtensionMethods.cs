@@ -30,7 +30,7 @@ namespace NEventStore.Persistence.RavenDB
                 CommitId = commit.CommitId,
                 CommitStamp = commit.CommitStamp,
                 Headers = commit.Headers.ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
-                Payload = serializer.Serialize(commit.Events)
+                Payload = (IList<EventMessage>) serializer.Serialize(commit.Events)
             };
         }
 
@@ -43,9 +43,10 @@ namespace NEventStore.Persistence.RavenDB
                 commit.CommitId,
                 commit.CommitSequence,
                 commit.CommitStamp,
-                null,
+                commit.CheckpointNumber.ToString(CultureInfo.InvariantCulture),
                 commit.Headers,
-                serializer.Deserialize<List<EventMessage>>(commit.Payload));
+                serializer.Deserialize<IList<EventMessage>>(commit.Payload)
+                );
         }
 
         public static string ToRavenSnapshotId(ISnapshot snapshot)
@@ -71,8 +72,8 @@ namespace NEventStore.Persistence.RavenDB
             {
                 return null;
             }
-
-            return new Snapshot(snapshot.BucketId, snapshot.StreamRevision, serializer.Deserialize<object>(snapshot.Payload));
+            return new Snapshot(snapshot.BucketId, snapshot.StreamRevision,
+                serializer.Deserialize<object>(snapshot.Payload));
         }
 
         public static RavenStreamHead ToRavenStreamHead(this CommitAttempt commit)
