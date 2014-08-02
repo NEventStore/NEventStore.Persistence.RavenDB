@@ -1,13 +1,20 @@
 namespace NEventStore.Persistence.RavenDB.Indexes
 {
-  using Raven.Client.Indexes;
-  using System.Linq;
+    using System.Linq;
+    using Raven.Client.Indexes;
 
-  public class RavenStreamHeadBySnapshotAge : AbstractIndexCreationTask<RavenStreamHead>
-  {
-    public RavenStreamHeadBySnapshotAge()
+    public class RavenStreamHeadBySnapshotAge : AbstractIndexCreationTask<RavenStreamHead>
     {
-      Map = snapshots => from s in snapshots select new { s.BucketId, SnapshotAge = s.HeadRevision - s.SnapshotRevision, s.StreamId };
+        public RavenStreamHeadBySnapshotAge()
+        {
+            Map = snapshots =>
+                    from s in snapshots
+                    select new
+                    {
+                        s.BucketId,
+                        SnapshotAge = s.HeadRevision - s.SnapshotRevision,
+                        s.StreamId
+                    };
+        }
     }
-  }
 }

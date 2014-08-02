@@ -1,77 +1,77 @@
 ﻿namespace NEventStore.Persistence.RavenDB.Tests
 {
-  using System;
-  using System.Collections.Generic;
-  using System.Linq;
-  using System.Transactions;
-  using NEventStore.Persistence.AcceptanceTests;
-  using NEventStore.Persistence.AcceptanceTests.BDD;
-  using Xunit;
-  using Xunit.Should;
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Transactions;
+    using NEventStore.Persistence.AcceptanceTests;
+    using NEventStore.Persistence.AcceptanceTests.BDD;
+    using Xunit;
+    using Xunit.Should;
 
-  // ReSharper disable InconsistentNaming
-  public class when_querying_within_ambient_transaction : using_raven_persistence_with_ambient_transaction
-  {
-    Exception exception;
-
-    protected override void Because()
+    // ReSharper disable InconsistentNaming
+    public class when_querying_within_ambient_transaction : using_raven_persistence_with_ambient_transaction
     {
-      exception = Catch.Exception(() => ravenPersistence.GetUndispatchedCommits().ToList());
+        private Exception exception;
+
+        protected override void Because()
+        {
+            exception = Catch.Exception(() => ravenPersistence.GetUndispatchedCommits().ToList());
+        }
+
+        [Fact]
+        public void should_not_throw_exception_when_querying()
+        {
+            exception.ShouldBeNull();
+        }
     }
 
-    [Fact]
-    public void should_not_throw_exception_when_querying()
+    public class using_raven_persistence_with_ambient_transaction : SpecificationBase, IUseFixture<RavenAmbientTransactionFixture>
     {
-      exception.ShouldBeNull();
-    }
-  }
+        private TransactionScope ambientTransaction;
+        protected IPersistStreams ravenPersistence;
+        protected RavenAmbientTransactionFixture Data { get; private set; }
 
-  public class using_raven_persistence_with_ambient_transaction : SpecificationBase, IUseFixture<RavenAmbientTransactionFixture>
-  {
-    private TransactionScope ambientTransaction;
-    protected IPersistStreams ravenPersistence;
+        public void SetFixture(RavenAmbientTransactionFixture data)
+        {
+            Data = data;
+        }
 
-    protected override void Context()
-    {
-      ravenPersistence = Data.EventStoreUsingAmbientTransaction();
-      ambientTransaction = new TransactionScope();
+        protected override void Context()
+        {
+            ravenPersistence = Data.EventStoreUsingAmbientTransaction();
+            ambientTransaction = new TransactionScope();
+        }
 
-    }
-
-    protected override void Cleanup()
-    {
-      ambientTransaction.Complete();
-      ambientTransaction.Dispose();
-    }
-
-
-    public void SetFixture(RavenAmbientTransactionFixture data)
-    {
-      Data = data;
+        protected override void Cleanup()
+        {
+            ambientTransaction.Complete();
+            ambientTransaction.Dispose();
+        }
     }
 
-    protected RavenAmbientTransactionFixture Data { get; private set; }
-  }
-
-  public class RavenAmbientTransactionFixture : IDisposable
-  {
-    protected List<IPersistStreams> instantiatedPersistence = new List<IPersistStreams>();
-
-    public IPersistStreams EventStoreUsingAmbientTransaction()
+    public class RavenAmbientTransactionFixture : IDisposable
     {
-      // use an existing transaction-scope, if available
-      var persistence = new InMemoryRavenPersistenceFactory(TestRavenConfig.ConnectionName, TestRavenConfig.Serializer,
-          new NEventStore.Persistence.RavenDB.RavenPersistenceOptions(TestRavenConfig.PageSize, TestRavenConfig.ConsistentQueries, TransactionScopeOption.Required)
-        ).Build();
-      persistence.Initialize();
-      return persistence;
+        protected List<IPersistStreams> instantiatedPersistence = new List<IPersistStreams>();
+
+        public void Dispose()
+        {
+            foreach (var persistence in instantiatedPersistence)
+            {
+                persistence.Dispose();
+            }
+        }
+
+        public IPersistStreams EventStoreUsingAmbientTransaction()
+        {
+            // use an existing transaction-scope, if available
+            IPersistStreams persistence = new InMemoryRavenPersistenceFactory(TestRavenConfig.ConnectionName, TestRavenConfig.Serializer,
+                new RavenPersistenceOptions(TestRavenConfig.PageSize, TestRavenConfig.ConsistentQueries, TransactionScopeOption.Required)
+                ).Build();
+            persistence.Initialize();
+            return persistence;
+        }
     }
 
-    public void Dispose()
-    {
-      foreach (var persistence in instantiatedPersistence)
-        persistence.Dispose();
-    }
-  }
-  // ReSharper restore InconsistentNaming
+    // ReSharper restore InconsistentNaming
 }

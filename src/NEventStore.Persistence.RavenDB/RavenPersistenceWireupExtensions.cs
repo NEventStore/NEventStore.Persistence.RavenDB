@@ -1,18 +1,23 @@
-using NEventStore.Persistence.RavenDB;
-
+// ReSharper disable once CheckNamespace
 namespace NEventStore
 {
-  public static class RavenPersistenceWireupExtensions
-  {
-    public static RavenPersistenceWireup UsingRavenPersistence(this Wireup wireup, string connectionName)
-    {
-      return new RavenPersistenceWireup(wireup, connectionName);
-    }
+    using NEventStore.Persistence.RavenDB;
 
-    public static RavenPersistenceWireup UsingRavenPersistence(this Wireup wireup, string connectionName, RavenPersistenceOptions options)
+    public static class RavenPersistenceWireupExtensions
     {
-      return new RavenPersistenceWireup(wireup, connectionName, options);
-    }
-  }
+        public static RavenPersistenceWireup UsingRavenPersistence(
+            this Wireup wireup,
+            string connectionName)
+        {
+            return new RavenPersistenceWireup(wireup, connectionName);
+        }
 
+        public static RavenPersistenceWireup UsingRavenPersistence(
+            this Wireup wireup,
+            string connectionName,
+            RavenPersistenceOptions options)
+        {
+            return new RavenPersistenceWireup(wireup, connectionName, options);
+        }
+    }
 }

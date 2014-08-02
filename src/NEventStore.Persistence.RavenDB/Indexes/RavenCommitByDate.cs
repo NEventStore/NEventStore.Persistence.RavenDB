@@ -1,13 +1,18 @@
 namespace NEventStore.Persistence.RavenDB.Indexes
 {
-  using Raven.Client.Indexes;
-  using System.Linq;
+    using System.Linq;
+    using Raven.Client.Indexes;
 
-  public class RavenCommitByDate : AbstractIndexCreationTask<RavenCommit>
-  {
-    public RavenCommitByDate()
+    public class RavenCommitByDate : AbstractIndexCreationTask<RavenCommit>
     {
-      Map = commits => from c in commits select new { c.BucketId, c.CommitStamp };
+        public RavenCommitByDate()
+        {
+            Map = commits => from c in commits
+                             select new
+                             {
+                                 c.BucketId,
+                                 c.CommitStamp
+                             };
+        }
     }
-  }
 }

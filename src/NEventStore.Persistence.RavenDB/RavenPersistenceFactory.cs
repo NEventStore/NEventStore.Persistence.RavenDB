@@ -1,23 +1,33 @@
 ﻿namespace NEventStore.Persistence.RavenDB
 {
-  using NEventStore.Serialization;
+    using NEventStore.Serialization;
 
-  public class RavenPersistenceFactory : IPersistenceFactory
-  {
-    protected readonly string connectionName;
-    protected readonly RavenPersistenceOptions options;
-    protected readonly IDocumentSerializer serializer;
-
-    public RavenPersistenceFactory(string connectionName, IDocumentSerializer serializer, RavenPersistenceOptions options)
+    public class RavenPersistenceFactory : IPersistenceFactory
     {
-      this.options = options;
-      this.connectionName = connectionName;
-      this.serializer = serializer;
-    }
+        private readonly string _connectionName;
+        private readonly RavenPersistenceOptions _options;
+        private readonly IDocumentSerializer _serializer;
 
-    public virtual IPersistStreams Build()
-    {
-      return new RavenPersistenceEngine(options.GetDocumentStore(connectionName), serializer, options);
+        public RavenPersistenceFactory(string connectionName, IDocumentSerializer serializer, RavenPersistenceOptions options)
+        {
+            _options = options;
+            _connectionName = connectionName;
+            _serializer = serializer;
+        }
+
+        public RavenPersistenceOptions Options
+        {
+            get { return _options; }
+        }
+
+        public IDocumentSerializer Serializer
+        {
+            get { return _serializer; }
+        }
+
+        public virtual IPersistStreams Build()
+        {
+            return new RavenPersistenceEngine(_options.GetDocumentStore(_connectionName), _serializer, _options);
+        }
     }
-  }
 }

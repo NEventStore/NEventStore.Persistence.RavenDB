@@ -195,4 +195,7 @@
   <data name="GettingAllCommitsFromCheckpoint" xml:space="preserve">
     <value>Getting all commits from checkpoint '{0}'.</value>
   </data>
+  <data name="ConfiguringEngine" xml:space="preserve">
+    <value>Configuring Raven persistence engine.</value>
+  </data>
 </root>

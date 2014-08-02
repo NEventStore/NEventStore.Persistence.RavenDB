@@ -1,14 +1,19 @@
 namespace NEventStore.Persistence.RavenDB.Indexes
 {
-  using Raven.Client.Indexes;
-  using System.Linq;
+    using System.Linq;
+    using Raven.Abstractions.Indexing;
+    using Raven.Client.Indexes;
 
-  public class RavenCommitByCheckpoint : AbstractIndexCreationTask<RavenCommit>
-  {
-    public RavenCommitByCheckpoint()
+    public class RavenCommitByCheckpoint : AbstractIndexCreationTask<RavenCommit>
     {
-      Map = commits => from c in commits select new { c.CheckpointNumber };
-      Sort(x => x.CheckpointNumber, Raven.Abstractions.Indexing.SortOptions.Long);
+        public RavenCommitByCheckpoint()
+        {
+            Map = commits => from c in commits
+                             select new
+                             {
+                                 c.CheckpointNumber
+                             };
+            Sort(x => x.CheckpointNumber, SortOptions.Long);
+        }
     }
-  }
 }

@@ -1,32 +1,14 @@
 namespace NEventStore.Persistence.RavenDB.Tests
 {
-  using System;
-  using System.Transactions;
-  using NEventStore.Persistence.AcceptanceTests;
-  using NEventStore.Serialization;
-  using Raven.Database.Config;
+    using System.Transactions;
+    using NEventStore.Serialization;
 
-  public static class TestRavenConfig
-  {
-    //public static RavenConfiguration GetDefaultConfig()
-    //{
-    //  return new RavenConfiguration
-    //  {
-    //    Serializer = new DocumentObjectSerializer(),
-    //    ScopeOption = TransactionScopeOption.Suppress,
-    //    ConsistentQueries = true, // helps tests pass consistently
-    //    RequestedPageSize = Int32.Parse("pageSize".GetSetting() ?? "10"), // smaller values help bring out bugs
-    //    MaxServerPageSize = Int32.Parse("serverPageSize".GetSetting() ?? "1024"), // raven default
-    //    ConnectionName = "Raven"
-    //  };
-    //}
-
-
-    public static DocumentObjectSerializer Serializer = new DocumentObjectSerializer();
-    public static TransactionScopeOption ScopeOption = TransactionScopeOption.Suppress;
-    public static bool ConsistentQueries = true; // helps tests pass consistently
-    public static int PageSize = 10; // smaller values help bring out bugs
-    public static string ConnectionName = "Raven";
-
-  }
+    public static class TestRavenConfig
+    {
+        public static readonly DocumentObjectSerializer Serializer = new DocumentObjectSerializer();
+        public const TransactionScopeOption ScopeOption = TransactionScopeOption.Suppress;
+        public const bool ConsistentQueries = true; // helps tests pass consistently
+        public const int PageSize = 10; // smaller values help bring out bugs
+        public const string ConnectionName = "Raven";
+    }
 }
