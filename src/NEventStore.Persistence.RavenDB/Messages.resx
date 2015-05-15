@@ -198,4 +198,7 @@
   <data name="ConfiguringEngine" xml:space="preserve">
     <value>Configuring Raven persistence engine.</value>
   </data>
+  <data name="GettingAllCommitsFromBucketAndCheckpoint" xml:space="preserve">
+    <value>Getting all commits from Bucket '{0}' and checkpoint '{1}'.</value>
+  </data>
 </root>
