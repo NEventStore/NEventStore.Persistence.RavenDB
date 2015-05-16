@@ -10,6 +10,7 @@
   using Raven.Client;
   using NEventStore.Persistence.RavenDB.Indexes;
   using System.Net;
+  using Raven.Client.Embedded;
   using Raven.Client.Exceptions;
   using System.Linq.Expressions;
   using Raven.Client.Indexes;
@@ -25,26 +26,37 @@
     private readonly bool _consistentQueries;
     private readonly TimeSpan? _consistencyTimeout;    
     private readonly int _pageSize;
-    private readonly DocumentStoreBase _store;
+    private readonly IDocumentStore _store;
     private readonly IDocumentSerializer _serializer;
 
-      public RavenPersistenceEngine(DocumentStoreBase store, IDocumentSerializer serializer, RavenPersistenceOptions options)
+    public RavenPersistenceEngine(EmbeddableDocumentStore store, IDocumentSerializer serializer, RavenPersistenceOptions options) : 
+      this((IDocumentStore)store, serializer, options)
     {
-      if (store == null)
-        throw new ArgumentNullException("store");
-      if (serializer == null)
-        throw new ArgumentNullException("serializer");
-      if (options == null)
-        throw new ArgumentNullException("options");
-      _store = store;
-      _serializer = serializer;
-      _consistentQueries = options.ConsistentQueries;
-      _consistencyTimeout = options.ConsistencyTimeout;
-      _pageSize = options.PageSize;
-      _scopeOption = options.ScopeOption;
-	  
-	  if(!_store.RegisteredStoreListeners.Any(l => l is CheckpointNumberIncrementListener))
-        _store.RegisterListener(new CheckpointNumberIncrementListener(_store));
+        if (!store.Listeners.StoreListeners.Any(l => l is CheckpointNumberIncrementListener))
+          store.RegisterListener(new CheckpointNumberIncrementListener(_store));
+    }
+
+    public RavenPersistenceEngine(DocumentStoreBase store, IDocumentSerializer serializer, RavenPersistenceOptions options) :
+      this((IDocumentStore)store, serializer, options)
+    { 
+	  if(!store.RegisteredStoreListeners.Any(l => l is CheckpointNumberIncrementListener))
+        store.RegisterListener(new CheckpointNumberIncrementListener(_store));
+    }
+
+    private RavenPersistenceEngine(IDocumentStore store, IDocumentSerializer serializer, RavenPersistenceOptions options)
+    {
+        if (store == null)
+            throw new ArgumentNullException("store");
+        if (serializer == null)
+            throw new ArgumentNullException("serializer");
+        if (options == null)
+            throw new ArgumentNullException("options");
+        _store = store;
+        _serializer = serializer;
+        _consistentQueries = options.ConsistentQueries;
+        _consistencyTimeout = options.ConsistencyTimeout;
+        _pageSize = options.PageSize;
+        _scopeOption = options.ScopeOption;
     }
 
     public virtual void Initialize()
@@ -281,7 +293,8 @@
       Func<Type, string> getTagCondition = t => "Tag:" + session.Advanced.DocumentStore.Conventions.GetTypeTagName(t);
       var query = new IndexQuery { Query = String.Format("({0} OR {1} OR {2})", getTagCondition(typeof(RavenCommit)), getTagCondition(typeof(RavenSnapshot)), getTagCondition(typeof(RavenStreamHead))) };
       while (HasDocs(EventStoreDocumentsByEntityName.IndexNameValue, query))
-        session.Advanced.DocumentStore.DatabaseCommands.DeleteByIndex(EventStoreDocumentsByEntityName.IndexNameValue, query, true);
+        session.Advanced.DocumentStore.DatabaseCommands.DeleteByIndex(EventStoreDocumentsByEntityName.IndexNameValue, query, 
+            new BulkOperationOptions { AllowStale = true });
     }
 
     private void PurgeBucket(IDocumentSession session, string bucketId)
@@ -290,7 +303,8 @@
       Func<Type, string> getTagCondition = t => "Tag:" + session.Advanced.DocumentStore.Conventions.GetTypeTagName(t);
       var query = new IndexQuery { Query = String.Format("({0} OR {1} OR {2}) AND (BucketId: {3})", getTagCondition(typeof(RavenCommit)), getTagCondition(typeof(RavenSnapshot)), getTagCondition(typeof(RavenStreamHead)), bucketId) };
       while (HasDocs(EventStoreDocumentsByEntityName.IndexNameValue, query))
-        session.Advanced.DocumentStore.DatabaseCommands.DeleteByIndex(EventStoreDocumentsByEntityName.IndexNameValue, query, true);
+          session.Advanced.DocumentStore.DatabaseCommands.DeleteByIndex(EventStoreDocumentsByEntityName.IndexNameValue, query, 
+              new BulkOperationOptions { AllowStale = true });
     }
 
     public virtual void Purge()
@@ -352,7 +366,8 @@
       Func<Type, string> getTagCondition = t => "Tag:" + session.Advanced.DocumentStore.Conventions.GetTypeTagName(t);
       var query = new IndexQuery { Query = String.Format("({0} OR {1} OR {2}) AND BucketId: {3} AND StreamId: {4}", getTagCondition(typeof(RavenCommit)), getTagCondition(typeof(RavenSnapshot)), getTagCondition(typeof(RavenStreamHead)), bucketId, streamId) };
       while (HasDocs(EventStoreDocumentsByEntityName.IndexNameValue, query))
-        session.Advanced.DocumentStore.DatabaseCommands.DeleteByIndex(EventStoreDocumentsByEntityName.IndexNameValue, query, true);
+          session.Advanced.DocumentStore.DatabaseCommands.DeleteByIndex(EventStoreDocumentsByEntityName.IndexNameValue, query, 
+              new BulkOperationOptions { AllowStale = true });
     }
 
     public virtual IEnumerable<ICommit> GetFrom(string checkpointToken)
