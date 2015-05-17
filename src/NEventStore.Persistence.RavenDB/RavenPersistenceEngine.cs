@@ -219,7 +219,7 @@
 
     public ICheckpoint GetCheckpoint(string checkpointToken)
     {
-      return string.IsNullOrWhiteSpace(checkpointToken) ? null : LongCheckpoint.Parse(checkpointToken);
+      return LongCheckpoint.Parse(checkpointToken);
     }
 
     public virtual IEnumerable<ICommit> GetFromTo(string bucketId, DateTime start, DateTime end)
