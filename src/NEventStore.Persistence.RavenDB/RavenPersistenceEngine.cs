@@ -23,11 +23,12 @@
     private static readonly ILog Logger = LogFactory.BuildLogger(typeof(RavenPersistenceEngine));
     private readonly TransactionScopeOption _scopeOption;
     private readonly bool _consistentQueries;
+    private readonly TimeSpan? _consistencyTimeout;    
     private readonly int _pageSize;
     private readonly IDocumentStore _store;
     private readonly IDocumentSerializer _serializer;
 
-    public RavenPersistenceEngine(IDocumentStore store, IDocumentSerializer serializer, RavenPersistenceOptions options)
+      public RavenPersistenceEngine(IDocumentStore store, IDocumentSerializer serializer, RavenPersistenceOptions options)
     {
       if (store == null)
         throw new ArgumentNullException("store");
@@ -38,6 +39,7 @@
       _store = store;
       _serializer = serializer;
       _consistentQueries = options.ConsistentQueries;
+      _consistencyTimeout = options.ConsistencyTimeout;
       _pageSize = options.PageSize;
       _scopeOption = options.ScopeOption;
     }
@@ -166,8 +168,12 @@
         {
           IQueryable<T> query = session.Query<T, TIndex>().Customize(x =>
           {
-            if (_consistentQueries)
-              x.WaitForNonStaleResults();
+              if (!_consistentQueries) return;
+              
+              if(_consistencyTimeout.HasValue)
+                  x.WaitForNonStaleResults(_consistencyTimeout.Value);
+              else
+                  x.WaitForNonStaleResults();
           })
           .Statistics(out stats)
           .Where(where);

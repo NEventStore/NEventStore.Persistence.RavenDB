@@ -17,23 +17,31 @@
         private readonly int _pageSize;
         private readonly string _databaseName;
         private readonly bool _consistentQueries;
-        private TransactionScopeOption _scopeOption;
+        private readonly TransactionScopeOption _scopeOption;
+        private readonly TimeSpan? _consistencyTimeout;
 
         public RavenPersistenceOptions(
             int pageSize = DefaultPageSize,
             bool consistentQueries = DefaultConsistentQueries,
             TransactionScopeOption scopeOption = DefaultScopeOption,
-            string databaseName = DefaultDatabaseName)
+            string databaseName = DefaultDatabaseName,
+            TimeSpan? consistencyTimeout = null)
         {
             _pageSize = (pageSize > MaxServerPageSize) ? MaxServerPageSize : pageSize;
             _databaseName = databaseName;
             _consistentQueries = consistentQueries;
+            _consistencyTimeout = consistencyTimeout;
             _scopeOption = scopeOption;
         }
 
         public bool ConsistentQueries
         {
             get { return _consistentQueries; }
+        }
+
+        public TimeSpan? ConsistencyTimeout
+        {
+            get { return _consistencyTimeout; }
         }
 
         public string DatabaseName
