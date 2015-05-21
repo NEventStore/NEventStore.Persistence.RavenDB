@@ -59,7 +59,7 @@
             get { return _scopeOption; }
         }
 
-        internal IDocumentStore GetDocumentStore(string connectionName)
+        internal DocumentStoreBase GetDocumentStore(string connectionName)
         {
             if (string.IsNullOrEmpty(connectionName))
             {
@@ -72,7 +72,7 @@
                 store.DefaultDatabase = !string.IsNullOrEmpty(DatabaseName) ? DatabaseName : DefaultDatabaseName;
             }
             store.Initialize();
-            store.RegisterListener(new CheckpointNumberIncrementListener(store));
+
             return store;
         }
     }
