@@ -1,6 +1,6 @@
 Param(
 	[string]$task,
-	[string]$buildNumber = "0",
+	[string]$buildNumber = 0,
 	[bool]$runPersistenceTests = $false)
 
 if($task -eq $null) {

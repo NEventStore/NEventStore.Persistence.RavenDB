@@ -37,6 +37,7 @@ task UpdateVersion {
     "Version: $version"
 	$oldVersion = New-Object Version $version
 	$newVersion = New-Object Version ($oldVersion.Major, $oldVersion.Minor, $oldVersion.Build, $build_number)
+	"New Version: $newVersion"
 	Update-Version $newVersion $assemblyInfoFilePath
 }
 
