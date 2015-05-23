@@ -8,12 +8,15 @@ properties {
 	$sln_file = "$src_directory\NEventStore.Persistence.RavenDB.sln"
 	$target_config = "Release"
 	$framework_version = "v4.0"
-    $build_number = 0
     $assemblyInfoFilePath = "$src_directory\VersionAssemblyInfo.cs"
 
 	$xunit_path = "$base_directory\bin\xunit.runners.1.9.1\tools\xunit.console.clr4.exe"
 	$ilMergeModule.ilMergePath = "$base_directory\bin\ilmerge-bin\ILMerge.exe"
 	$nuget_dir = "$src_directory\.nuget"
+
+	if($build_number -eq $null) {
+		$build_number = 0
+	}
 
 	if($runPersistenceTests -eq $null) {
 		$runPersistenceTests = $false
