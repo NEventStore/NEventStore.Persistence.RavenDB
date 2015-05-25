@@ -25,10 +25,10 @@
     private readonly bool _consistentQueries;
     private readonly TimeSpan? _consistencyTimeout;    
     private readonly int _pageSize;
-    private readonly IDocumentStore _store;
+    private readonly DocumentStoreBase _store;
     private readonly IDocumentSerializer _serializer;
 
-      public RavenPersistenceEngine(IDocumentStore store, IDocumentSerializer serializer, RavenPersistenceOptions options)
+      public RavenPersistenceEngine(DocumentStoreBase store, IDocumentSerializer serializer, RavenPersistenceOptions options)
     {
       if (store == null)
         throw new ArgumentNullException("store");
@@ -42,6 +42,9 @@
       _consistencyTimeout = options.ConsistencyTimeout;
       _pageSize = options.PageSize;
       _scopeOption = options.ScopeOption;
+	  
+	  if(!_store.RegisteredStoreListeners.Any(l => l is CheckpointNumberIncrementListener))
+        _store.RegisterListener(new CheckpointNumberIncrementListener(_store));
     }
 
     public virtual void Initialize()
