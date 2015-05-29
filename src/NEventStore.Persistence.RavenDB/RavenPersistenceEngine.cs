@@ -10,7 +10,6 @@
   using Raven.Client;
   using NEventStore.Persistence.RavenDB.Indexes;
   using System.Net;
-  using Raven.Client.Embedded;
   using Raven.Client.Exceptions;
   using System.Linq.Expressions;
   using Raven.Client.Indexes;
@@ -29,34 +28,20 @@
     private readonly IDocumentStore _store;
     private readonly IDocumentSerializer _serializer;
 
-    public RavenPersistenceEngine(EmbeddableDocumentStore store, IDocumentSerializer serializer, RavenPersistenceOptions options) : 
-      this((IDocumentStore)store, serializer, options)
+      public RavenPersistenceEngine(IDocumentStore store, IDocumentSerializer serializer, RavenPersistenceOptions options)
     {
-        if (!store.Listeners.StoreListeners.Any(l => l is CheckpointNumberIncrementListener))
-          store.RegisterListener(new CheckpointNumberIncrementListener(_store));
-    }
-
-    public RavenPersistenceEngine(DocumentStoreBase store, IDocumentSerializer serializer, RavenPersistenceOptions options) :
-      this((IDocumentStore)store, serializer, options)
-    { 
-	  if(!store.RegisteredStoreListeners.Any(l => l is CheckpointNumberIncrementListener))
-        store.RegisterListener(new CheckpointNumberIncrementListener(_store));
-    }
-
-    private RavenPersistenceEngine(IDocumentStore store, IDocumentSerializer serializer, RavenPersistenceOptions options)
-    {
-        if (store == null)
-            throw new ArgumentNullException("store");
-        if (serializer == null)
-            throw new ArgumentNullException("serializer");
-        if (options == null)
-            throw new ArgumentNullException("options");
-        _store = store;
-        _serializer = serializer;
-        _consistentQueries = options.ConsistentQueries;
-        _consistencyTimeout = options.ConsistencyTimeout;
-        _pageSize = options.PageSize;
-        _scopeOption = options.ScopeOption;
+      if (store == null)
+        throw new ArgumentNullException("store");
+      if (serializer == null)
+        throw new ArgumentNullException("serializer");
+      if (options == null)
+        throw new ArgumentNullException("options");
+      _store = store;
+      _serializer = serializer;
+      _consistentQueries = options.ConsistentQueries;
+      _consistencyTimeout = options.ConsistencyTimeout;
+      _pageSize = options.PageSize;
+      _scopeOption = options.ScopeOption;
     }
 
     public virtual void Initialize()
