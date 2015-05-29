@@ -15,7 +15,6 @@
     <dependencies>
       <dependency id="NEventStore" version="5.2" />
       <dependency id="RavenDB.Client" version="[3.0.3660, 4.0)" />
-      <dependency id="RavenDB.Database" version="[3.0.3660, 4.0)" />
     </dependencies>
   </metadata>
   <files>
