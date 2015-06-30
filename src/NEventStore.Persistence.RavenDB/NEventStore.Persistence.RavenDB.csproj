@@ -38,9 +38,6 @@
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="..\VersionAssemblyInfo.cs">
-      <Link>Properties\VersionAssemblyInfo.cs</Link>
-    </Compile>
     <Compile Include="CheckpointNumberIncrementListener.cs" />
     <Compile Include="ExtensionMethods.cs" />
     <Compile Include="Indexes\EventStoreDocumentsByEntityName.cs" />
