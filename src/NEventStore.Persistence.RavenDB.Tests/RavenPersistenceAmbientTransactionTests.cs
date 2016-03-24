@@ -16,7 +16,7 @@
 
         protected override void Because()
         {
-            exception = Catch.Exception(() => ravenPersistence.GetUndispatchedCommits().ToList());
+            exception = Catch.Exception(() => ravenPersistence.GetFromStart().ToList());
         }
 
         [Fact]

@@ -234,38 +234,6 @@
       return QueryCommits<RavenCommitByDate>(x => x.BucketId == bucketId && x.CommitStamp >= start && x.CommitStamp < end, x => x.CommitStamp); //.ThenBy(x => x.StreamId).ThenBy(x => x.CommitSequence);
     }
 
-    public virtual IEnumerable<ICommit> GetUndispatchedCommits()
-    {
-      Logger.Debug(Messages.GettingUndispatchedCommits);
-      return QueryCommits<RavenCommitsByDispatched>(x => !x.Dispatched, x => x.CheckpointNumber);
-    }
-
-    public virtual void MarkCommitAsDispatched(ICommit commit)
-    {
-      if (commit == null)
-        throw new ArgumentNullException("commit");
-
-      var data = new PatchCommandData
-      {
-        Key = commit.ToRavenCommitId(),
-        Patches = new[] { new PatchRequest { Type = PatchCommandType.Set, Name = "Dispatched", Value = RavenJToken.Parse("true") } }
-      };
-
-      Logger.Debug(Messages.MarkingCommitAsDispatched, commit.CommitId, commit.BucketId);
-
-      TryRaven(() =>
-      {
-        using (TransactionScope scope = OpenCommandScope())
-        using (IDocumentSession session = _store.OpenSession())
-        {
-          session.Advanced.DocumentStore.DatabaseCommands.Batch(new[] { data });
-          session.SaveChanges();
-          scope.Complete();
-          return true;
-        }
-      });
-    }
-
     private bool HasDocs(string index, IndexQuery query)
     {
       while (_store.DatabaseCommands.GetStatistics().StaleIndexes.Contains(index))
