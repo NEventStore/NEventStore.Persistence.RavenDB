@@ -18,7 +18,7 @@
     </dependencies>
   </metadata>
   <files>
-    <file src="publish-net45\plugins\persistence\raven\NEventStore.Persistence.RavenDB.dll" target="lib\net45"/>
-    <file src="publish-net45\plugins\persistence\raven\NEventStore.Persistence.RavenDB.pdb" target="lib\net45"/>
+    <file src="NEventStore.Persistence.RavenDB\bin\$configuration$\NEventStore.Persistence.RavenDB.dll" target="lib\net45"/>
+    <file src="NEventStore.Persistence.RavenDB\bin\$configuration$\NEventStore.Persistence.RavenDB.pdb" target="lib\net45"/>
   </files>
 </package>
