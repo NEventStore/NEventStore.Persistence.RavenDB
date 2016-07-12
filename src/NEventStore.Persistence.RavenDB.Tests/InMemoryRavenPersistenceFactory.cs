@@ -14,6 +14,7 @@ namespace NEventStore.Persistence.RavenDB.Tests
         {
             var embeddedStore = new EmbeddableDocumentStore();
             embeddedStore.Configuration.RunInMemory = true;
+            embeddedStore.Configuration.Storage.Voron.AllowOn32Bits = true;
             embeddedStore.RegisterListener(new CheckpointNumberIncrementListener(embeddedStore));
             embeddedStore.Initialize();
             return new RavenPersistenceEngine(embeddedStore, Serializer, Options);

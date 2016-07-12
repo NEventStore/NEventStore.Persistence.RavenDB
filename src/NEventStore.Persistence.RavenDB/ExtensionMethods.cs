@@ -43,7 +43,7 @@ namespace NEventStore.Persistence.RavenDB
           commit.CommitId,
           commit.CommitSequence,
           commit.CommitStamp,
-          commit.CheckpointNumber.ToString(CultureInfo.InvariantCulture),
+          commit.CheckpointNumber,
           commit.Headers,
           serializer.Deserialize<IList<EventMessage>>(commit.Payload)
           );

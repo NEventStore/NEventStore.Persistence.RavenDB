@@ -10,21 +10,22 @@
     using Xunit.Should;
 
     // ReSharper disable InconsistentNaming
-    public class when_querying_within_ambient_transaction : using_raven_persistence_with_ambient_transaction
-    {
-        private Exception exception;
+    //COMMENTED OUT BECAUSE THE DISPATCHER WAS REMOVED FROM BASE LIBRARY
+    //public class when_querying_within_ambient_transaction : using_raven_persistence_with_ambient_transaction
+    //{
+    //    private Exception exception;
 
-        protected override void Because()
-        {
-            exception = Catch.Exception(() => ravenPersistence.GetUndispatchedCommits().ToList());
-        }
+    //    protected override void Because()
+    //    {
+    //        exception = Catch.Exception(() => ravenPersistence.GetUndispatchedCommits().ToList());
+    //    }
 
-        [Fact]
-        public void should_not_throw_exception_when_querying()
-        {
-            exception.ShouldBeNull();
-        }
-    }
+    //    [Fact]
+    //    public void should_not_throw_exception_when_querying()
+    //    {
+    //        exception.ShouldBeNull();
+    //    }
+    //}
 
     public class using_raven_persistence_with_ambient_transaction : SpecificationBase, IUseFixture<RavenAmbientTransactionFixture>
     {

@@ -216,17 +216,13 @@
       Logger.Debug(Messages.GettingAllCommitsFrom, start, bucketId);
       return QueryCommits<RavenCommitByDate>(x => x.BucketId == bucketId && x.CommitStamp >= start, x => x.CommitStamp);
     }
-    public IEnumerable<ICommit> GetFrom(string bucketId, string checkpointToken)
+    public IEnumerable<ICommit> GetFrom(string bucketId, Int64 checkpointToken)
     {
-      var intCheckpoint = LongCheckpoint.Parse(checkpointToken);
-      Logger.Debug(Messages.GettingAllCommitsFromBucketAndCheckpoint, bucketId, intCheckpoint.Value);
-      return QueryCommits<RavenCommitByCheckpoint>(x => x.BucketId == bucketId && x.CheckpointNumber > intCheckpoint.LongValue, x => x.CheckpointNumber);
+      Logger.Debug(Messages.GettingAllCommitsFromBucketAndCheckpoint, bucketId, checkpointToken);
+      return QueryCommits<RavenCommitByCheckpoint>(x => x.BucketId == bucketId && x.CheckpointNumber > checkpointToken, x => x.CheckpointNumber);
     }
 
-    public ICheckpoint GetCheckpoint(string checkpointToken)
-    {
-      return LongCheckpoint.Parse(checkpointToken);
-    }
+
 
     public virtual IEnumerable<ICommit> GetFromTo(string bucketId, DateTime start, DateTime end)
     {
@@ -355,11 +351,10 @@
               new BulkOperationOptions { AllowStale = true });
     }
 
-    public virtual IEnumerable<ICommit> GetFrom(string checkpointToken)
+    public virtual IEnumerable<ICommit> GetFrom(Int64 checkpointToken)
     {
       Logger.Debug(Messages.GettingAllCommitsFromCheckpoint, checkpointToken);
-      LongCheckpoint checkpoint = LongCheckpoint.Parse(checkpointToken);
-      return QueryCommits<RavenCommitByCheckpoint>(x => x.CheckpointNumber > checkpoint.LongValue, x => x.CheckpointNumber);
+      return QueryCommits<RavenCommitByCheckpoint>(x => x.CheckpointNumber > checkpointToken, x => x.CheckpointNumber);
     }
 
     public virtual ICommit Commit(CommitAttempt attempt)
