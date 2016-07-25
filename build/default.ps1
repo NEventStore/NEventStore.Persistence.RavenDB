@@ -1,11 +1,11 @@
 properties {
     $base_directory = Resolve-Path .. 
-	$publish_directory = "$base_directory\publish-net40"
+	$publish_directory = "$base_directory\publish-net45"
 	#$build_directory = "$base_directory\build"
 	$src_directory = "$base_directory\src"
 	$output_directory = "$base_directory\output"
 	#$packages_directory = "$src_directory\packages"
-	$sln_file = "$src_directory\NEventStore.Persistence.MongoDB.sln"
+	$sln_file = "$src_directory\NEventStore.Persistence.RavenDB.sln"
 	$target_config = "Release"
 	#$framework_version = "v4.5"
 	#$version = "0.0.0.0"
@@ -54,16 +54,15 @@ task Compile {
 task Test -precondition { $runPersistenceTests } {
 	"Persistence Tests"
 	EnsureDirectory $output_directory
-	Invoke-XUnit -Path $src_directory -TestSpec '*Persistence.MongoDB.Tests.dll' `
+	Invoke-XUnit -Path $src_directory -TestSpec '*Persistence.RavenDB.Tests.dll' `
     -SummaryPath $output_directory\persistence_tests.xml `
     -XUnitPath $xunit_path
 }
 
 task Package -depends Build {
 	move $output_directory $publish_directory
-    mkdir $publish_directory\plugins\persistence\mongo | out-null
-    copy "$src_directory\NEventStore.Persistence.MongoDB\bin\$target_config\NEventStore.Persistence.MongoDB.???" "$publish_directory\plugins\persistence\mongo"
-    copy "$src_directory\NEventStore.Persistence.MongoDB\bin\$target_config\readme.txt" "$publish_directory\plugins\persistence\mongo"
+    mkdir $publish_directory\plugins\persistence\raven | out-null
+    copy "$src_directory\NEventStore.Persistence.RavenDB\bin\$target_config\NEventStore.Persistence.RavenDB.???" "$publish_directory\plugins\persistence\raven"
 }
 
 task Clean {
